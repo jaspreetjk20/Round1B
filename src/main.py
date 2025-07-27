@@ -4,7 +4,7 @@ import time
 from typing import List, Dict, Any
 
 # Import your existing heading extractor
-from paste import HeadingOnlyPDFExtractor
+from chkmain import HeadingOnlyPDFExtractor
 
 # Import the new modules
 from section_extractor import SectionExtractor
