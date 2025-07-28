@@ -1,4 +1,4 @@
-#!/home/kiit/Round1B/venv/bin/python3
+#!/home/anish-goenka/projects/adobe-r1b-team-gud/venv/bin/python3
 """A command line tool for extracting text and images from PDF and
 output it to plain text, html, xml or tags.
 """
