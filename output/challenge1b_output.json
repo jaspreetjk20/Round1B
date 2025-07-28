@@ -5,7 +5,7 @@
     "input_documents": [
       "1B.pdf"
     ],
-    "timestamp": "2025-07-27 12:45:53",
+    "timestamp": "2025-07-28 11:26:00",
     "total_sections": 5
   },
   "ranked_sections": [
@@ -130,6 +130,6 @@
   "processing_summary": {
     "sections_analyzed": 5,
     "documents_processed": 1,
-    "processing_time_seconds": 6.21
+    "processing_time_seconds": 7.31
   }
 }
