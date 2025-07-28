@@ -130,15 +130,6 @@ The system generates a comprehensive JSON output containing:
 - **Sub-section Analysis**: Detailed breakdown of most relevant content segments
 - **Processing Summary**: Performance metrics and document coverage statistics
 
-## 🧪 Testing
-
-The project includes three test collections demonstrating different use cases:
-- **Collection 1**: Travel planning documents for France
-- **Collection 2**: Adobe Acrobat learning materials  
-- **Collection 3**: Recipe and cooking guidance documents
-
-Run tests using the provided test cases in the `test_cases/` directory.
-
 ## 🤝 Team GUD
 
 This project was developed for Adobe India Hackathon's Round 1B challenge by Team GUD. 
