@@ -1,4 +1,4 @@
-#!/home/kiit/Round1B/venv/bin/python3
+#!/home/anish-goenka/projects/adobe-r1b-team-gud/venv/bin/python3
 '''
 The MIT License (MIT)
 

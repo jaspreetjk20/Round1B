@@ -20,10 +20,53 @@ class PersonaDrivenDocumentAnalyzer:
         self.section_ranker = SectionRanker()
         self.output_formatter = OutputFormatter()
     
+    def load_input_config(self, input_dir: str) -> Dict[str, Any]:
+        """Load input configuration from input.json file"""
+        input_json_path = os.path.join(input_dir, "input.json")
+        
+        if not os.path.exists(input_json_path):
+            raise FileNotFoundError(f"input.json not found in '{input_dir}' directory")
+        
+        try:
+            with open(input_json_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Validate required fields
+            if 'documents' not in config:
+                raise ValueError("input.json must contain 'documents' array")
+            
+            if not isinstance(config['documents'], list) or len(config['documents']) == 0:
+                raise ValueError("'documents' must be a non-empty array")
+            
+            # Extract filenames from documents
+            pdf_filenames = []
+            for doc in config['documents']:
+                if 'filename' not in doc:
+                    raise ValueError("Each document must have a 'filename' field")
+                pdf_filenames.append(doc['filename'])
+            
+            print(f"📋 Loaded input.json with {len(pdf_filenames)} documents:")
+            for i, doc in enumerate(config['documents'], 1):
+                filename = doc.get('filename', 'N/A')
+                title = doc.get('title', 'No title')
+                print(f"  {i}. {filename} - {title}")
+            
+            return {
+                'config': config,
+                'pdf_filenames': pdf_filenames,
+                'persona': config.get('persona', {}).get('role', ''),
+                'job_to_be_done': config.get('job_to_be_done', {}).get('task', '')
+            }
+            
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in input.json: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Error reading input.json: {str(e)}")
+    
     def process_documents(self, 
                          input_dir: str, 
-                         persona: str, 
-                         job_to_be_done: str,
+                         persona: str = None, 
+                         job_to_be_done: str = None,
                          output_path: str = None) -> Dict[str, Any]:
         """Main processing function for Round 1B"""
         
@@ -33,12 +76,48 @@ class PersonaDrivenDocumentAnalyzer:
         if not os.path.exists(input_dir):
             raise FileNotFoundError(f"Input directory '{input_dir}' not found")
         
-        # Get PDF files
-        pdf_files = [f for f in os.listdir(input_dir) if f.lower().endswith('.pdf')]
-        if not pdf_files:
-            raise FileNotFoundError(f"No PDF files found in '{input_dir}'")
+        # Load configuration from input.json
+        try:
+            input_config = self.load_input_config(input_dir)
+            pdf_filenames = input_config['pdf_filenames']
+            
+            # Use persona and job from input.json if not provided as parameters
+            if not persona:
+                persona = input_config['persona']
+            if not job_to_be_done:
+                job_to_be_done = input_config['job_to_be_done']
+                
+        except Exception as e:
+            print(f"❌ Error loading input.json: {str(e)}")
+            print("Falling back to scanning directory for PDF files...")
+            
+            # Fallback: scan directory for PDF files
+            pdf_filenames = [f for f in os.listdir(input_dir) if f.lower().endswith('.pdf')]
+            if not pdf_filenames:
+                raise FileNotFoundError(f"No PDF files found in '{input_dir}'")
         
-        print(f"📂 Found {len(pdf_files)} PDF files: {pdf_files}")
+        # Validate that specified PDFs exist in the directory
+        missing_files = []
+        existing_files = []
+        
+        for filename in pdf_filenames:
+            pdf_path = os.path.join(input_dir, filename)
+            if os.path.exists(pdf_path):
+                existing_files.append(filename)
+            else:
+                missing_files.append(filename)
+        
+        if missing_files:
+            print(f"⚠️  Warning: The following files from input.json were not found:")
+            for missing_file in missing_files:
+                print(f"   - {missing_file}")
+        
+        if not existing_files:
+            raise FileNotFoundError(f"None of the specified PDF files were found in '{input_dir}'")
+        
+        pdf_files = existing_files
+        
+        print(f"📂 Processing {len(pdf_files)} PDF files: {pdf_files}")
         print(f"👤 Persona: {persona}")
         print(f"🎯 Job: {job_to_be_done}")
         print("-" * 60)
@@ -111,7 +190,7 @@ def load_config(config_path: str = "config.json") -> Dict[str, Any]:
         # Create default config
         default_config = {
             "persona": "PhD Researcher in Computational Biology",
-            "job_to_be_done": "Prepare a comprehensive literature review focusing on methodologies, datasets, and performance benchmarks",
+            "job_to_be_1done": "Prepare a comprehensive literature review focusing on methodologies, datasets, and performance benchmarks",
             "input_directory": "input",
             "output_directory": "output"
         }
@@ -181,36 +260,44 @@ def main():
     if not os.path.exists(input_dir):
         print(f"📁 Creating '{input_dir}' directory...")
         os.makedirs(input_dir)
-        print(f"Please add your PDF files to the '{input_dir}' directory.")
+        print(f"Please add your PDF files and input.json to the '{input_dir}' directory.")
         return
     
     os.makedirs(output_dir, exist_ok=True)
     
-    # Check for PDF files
-    pdf_files = [f for f in os.listdir(input_dir) if f.lower().endswith('.pdf')]
-    if not pdf_files:
-        print(f"❌ No PDF files found in '{input_dir}' directory.")
-        print("Please add PDF files and run again.")
+    # Check for input.json first
+    input_json_path = os.path.join(input_dir, "input.json")
+    if not os.path.exists(input_json_path):
+        print(f"❌ input.json not found in '{input_dir}' directory.")
+        print("Please create an input.json file with document specifications.")
+        print("Example format:")
+        print('''{
+    "documents": [
+        {
+            "filename": "document1.pdf",
+            "title": "Document Title"
+        }
+    ],
+    "persona": {
+        "role": "PhD Researcher in Computational Biology"
+    },
+    "job_to_be_done": {
+        "task": "Prepare a comprehensive literature review"
+    }
+}''')
         return
     
     try:
-        # Load or create configuration
-        config = load_config()
-        
-        # Interactive setup if needed
-        if len(pdf_files) > 0:
-            user_input = interactive_setup()
-            config.update(user_input)
-        
         # Initialize analyzer
         analyzer = PersonaDrivenDocumentAnalyzer()
         
-        # Process documents
+        # Load input configuration (persona and job will be read from input.json)
+        print("📋 Reading configuration from input.json...")
+        
+        # Process documents - persona and job will be extracted from input.json
         output_path = os.path.join(output_dir, "challenge1b_output.json")
         result = analyzer.process_documents(
             input_dir=input_dir,
-            persona=config["persona"],
-            job_to_be_done=config["job_to_be_done"],
             output_path=output_path
         )
         
